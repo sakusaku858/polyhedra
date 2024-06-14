@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width">
+    <link rel="stylesheet" type="text/css" href="Main.css" />
+    <title>My first three.js app</title>
+    <style>
+        body {
+            margin: 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="graphics"></div>
+    <nav id="nav">
+        <input type="checkbox" id="AutoRotation" checked>自動回転<br>
+        回転<input type="range" id="Rotation" min="0" max="629" value="0"><br><br>
+
+        Ax<input type="range" id="Ax" min="-10" max="10" value="10"> <span id="AxValue"></span><br>
+        Ay<input type="range" id="Ay" min="-10" max="10" value="10"><span id="AyValue"></span><br>
+        Az<input type="range" id="Az" min="-10" max="10" value="-10"><span id="AzValue"></span><br><br>
+
+        Bx<input type="range" id="Bx" min="-10" max="10" value="-10"><span id="BxValue"></span><br>
+        By<input type="range" id="By" min="-10" max="10" value="10"><span id="ByValue"></span><br>
+        Bz<input type="range" id="Bz" min="-10" max="10" value="-10"><span id="BzValue"></span><br><br>
+
+        Cx<input type="range" id="Cx" min="-10" max="10" value="-10"><span id="CxValue"></span><br>
+        Cy<input type="range" id="Cy" min="-10" max="10" value="-10"><span id="CyValue"></span><br>
+        Cz<input type="range" id="Cz" min="-10" max="10" value="10"><span id="CzValue"></span><br><br>
+
+        <label><input type="radio" name="group" class="radio" value="Tetra" id="tetra">四面体群</label><br>
+        <label><input type="radio" name="group" class="radio" value="Octa" id="octa">八面体群</label><br>
+        <label><input type="radio" name="group" class="radio" value="Dodeca" id="dodeca" checked>十二面体群</label><br><br>
+
+        R<input type="range" id="R" min="0" max="255" value="100"><span id="RValue"></span><br>
+        G<input type="range" id="G" min="0" max="255" value="150"><span id="GValue"></span><br>
+        B<input type="range" id="B" min="0" max="255" value="255"><span id="BValue"></span><br><br>
+
+    </nav>
+    <script src="js/three.js"></script>
+    <script src="vector.js"></script>
+    <script src="RotateGroup.js"></script>
+    <script>
+
+        let animeID = 0;
+        let rotation = 0;
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(800, 600);
+        renderer.shadowMap.enabled = true;
+
+        function addEventListener() {
+            document.getElementById('Ax').addEventListener('input', function () { return showSliderValue(); });
+            document.getElementById('Ay').addEventListener('input', function () { return showSliderValue(); });
+            document.getElementById('Az').addEventListener('input', function () { return showSliderValue(); });
+            document.getElementById('Bx').addEventListener('input', function () { return showSliderValue(); });
+            document.getElementById('By').addEventListener('input', function () { return showSliderValue(); });
+            document.getElementById('Bz').addEventListener('input', function () { return showSliderValue(); });
+            document.getElementById('Cx').addEventListener('input', function () { return showSliderValue(); });
+            document.getElementById('Cy').addEventListener('input', function () { return showSliderValue(); });
+            document.getElementById('Cz').addEventListener('input', function () { return showSliderValue(); });
+            document.getElementById('R').addEventListener('input', function () { return showSliderValue(); });
+            document.getElementById('G').addEventListener('input', function () { return showSliderValue(); });
+            document.getElementById('B').addEventListener('input', function () { return showSliderValue(); });
+
+            document.getElementById('Ax').addEventListener('input', function () { return generateButtonFunc(); });
+            document.getElementById('Ay').addEventListener('input', function () { return generateButtonFunc(); });
+            document.getElementById('Az').addEventListener('input', function () { return generateButtonFunc(); });
+            document.getElementById('Bx').addEventListener('input', function () { return generateButtonFunc(); });
+            document.getElementById('By').addEventListener('input', function () { return generateButtonFunc(); });
+            document.getElementById('Bz').addEventListener('input', function () { return generateButtonFunc(); });
+            document.getElementById('Cx').addEventListener('input', function () { return generateButtonFunc(); });
+            document.getElementById('Cy').addEventListener('input', function () { return generateButtonFunc(); });
+            document.getElementById('Cz').addEventListener('input', function () { return generateButtonFunc(); });
+            document.getElementById('R').addEventListener('input', function () { return generateButtonFunc(); });
+            document.getElementById('G').addEventListener('input', function () { return generateButtonFunc(); });
+            document.getElementById('B').addEventListener('input', function () { return generateButtonFunc(); });
+
+            document.getElementById('tetra').addEventListener('input', function () { return generateButtonFunc(); });
+            document.getElementById('octa').addEventListener('input', function () { return generateButtonFunc(); });
+            document.getElementById('dodeca').addEventListener('input', function () { return generateButtonFunc(); });
+        }
+
+        addEventListener();
+
+        function showSliderValue() {
+            document.getElementById('AxValue').innerHTML = document.getElementById('Ax').value;
+            document.getElementById('AyValue').innerHTML = document.getElementById('Ay').value;
+            document.getElementById('AzValue').innerHTML = document.getElementById('Az').value;
+            document.getElementById('BxValue').innerHTML = document.getElementById('Bx').value;
+            document.getElementById('ByValue').innerHTML = document.getElementById('By').value;
+            document.getElementById('BzValue').innerHTML = document.getElementById('Bz').value;
+            document.getElementById('CxValue').innerHTML = document.getElementById('Cx').value;
+            document.getElementById('CyValue').innerHTML = document.getElementById('Cy').value;
+            document.getElementById('CzValue').innerHTML = document.getElementById('Cz').value;
+            document.getElementById('RValue').innerHTML = document.getElementById('R').value;
+            document.getElementById('GValue').innerHTML = document.getElementById('G').value;
+            document.getElementById('BValue').innerHTML = document.getElementById('B').value;
+        }
+
+        function getSelectedGroup() {
+            const groupList = document.getElementsByName('group');
+            let value = false;
+            groupList.forEach(e => {
+                if (e.checked) {
+                    value = e.value;
+                }
+            });
+            return value;
+        }
+
+        function generateButtonFunc() {
+            const input = getUserInput();
+            const obj3d = generateObject(input);
+            const scene = getInitializedScene();
+            const camera = getInitializedCamera();
+
+            scene.add(obj3d);
+            window.cancelAnimationFrame(animeID);
+
+            function animate() {
+                renderer.render(scene, camera);
+                animeID = requestAnimationFrame(animate);
+                if (document.getElementById('AutoRotation').checked) {
+                    rotation += 0.01;
+                    obj3d.rotation.y = rotation;
+                } else {
+                    rotation = document.getElementById('Rotation').value / 100
+                    obj3d.rotation.y = rotation;
+                }
+            }
+            animate();
+        }
+
+
+        function getUserInput() {
+            const selectedGroupName = getSelectedGroup();
+
+            const tetra = new RotateGroupOfTetrahedron();
+            const octa = new RotateGroupOfOctahedron();
+            const dodeca = new RotateGroupOfDodecahedron();
+
+            const groups = [
+                { name: "Tetra", group: tetra },
+                { name: "Octa", group: octa },
+                { name: "Dodeca", group: dodeca }
+            ];
+
+            const selectedGroup = groups.filter(e => {
+                return e.name === selectedGroupName
+            })[0].group;
+
+
+            const Ax = document.getElementById('Ax').value - '0';
+            const Ay = document.getElementById('Ay').value - '0';
+            const Az = document.getElementById('Az').value - '0';
+
+            const Bx = document.getElementById('Bx').value - '0';
+            const By = document.getElementById('By').value - '0';
+            const Bz = document.getElementById('Bz').value - '0';
+
+            const Cx = document.getElementById('Cx').value - '0';
+            const Cy = document.getElementById('Cy').value - '0';
+            const Cz = document.getElementById('Cz').value - '0';
+
+            const a = new MyVector(Ax, Ay, Az);
+            const b = new MyVector(Bx, By, Bz);
+            const c = new MyVector(Cx, Cy, Cz);
+
+            const colorR = document.getElementById('R').value - '0';
+            const colorG = document.getElementById('G').value - '0';
+            const colorB = document.getElementById('B').value - '0';
+
+            const color = colorR * 256 * 256 + colorG * 256 + colorB;
+
+            return { a: a, b: b, c: c, group: selectedGroup, color: color };
+        }
+
+        class Triangle {
+            constructor(v1, v2, v3) {
+                this.v1 = v1;
+                this.v2 = v2;
+                this.v3 = v3;
+            }
+            rotateAxisAngle(axis, angle) {
+                return new Triangle(this.v1.rotateAxisAngle(axis, angle), this.v2.rotateAxisAngle(axis, angle), this.v3.rotateAxisAngle(axis, angle));
+            }
+            convToGeometry() {
+                const points = [];
+                points.push(this.v1);
+                points.push(this.v2);
+                points.push(this.v3);
+                const geometry = new THREE.BufferGeometry();
+                geometry.setFromPoints(points);
+                geometry.computeVertexNormals();
+                geometry.computeBoundingSphere();
+                return geometry;
+            }
+            convToMesh(color) {
+                const geometry = this.convToGeometry();
+                const material = new THREE.MeshPhongMaterial({ color: color, side: THREE.DoubleSide });
+                const mesh = new THREE.Mesh(geometry, material);
+                mesh.receiveShadow = true;
+                mesh.castShadow = true;
+                return mesh;
+            }
+        }
+
+        function generateObject(userInput) {
+            const v1 = userInput.a;
+            const v2 = userInput.b;
+            const v3 = userInput.c;
+            const group = userInput.group;
+            const triangle = new Triangle(v1, v2, v3);
+            const triangles = group.rotateTriangle(triangle);
+            const wrap = new THREE.Object3D();
+            triangles.forEach(e => wrap.add(e.convToMesh(userInput.color)));
+            return wrap;
+        }
+
+        function setLight(scene) {
+            const light = new THREE.DirectionalLight(0xffffff);
+            light.position.set(100, 100, 100);
+            scene.add(light);
+
+            const light3 = new THREE.AmbientLight(0xFFFFFF, 0.5);
+            scene.add(light3);
+
+            const pointLight = new THREE.PointLight(0xffffff, 1, 1000);
+            pointLight.position.set(40, 50, 30);
+            pointLight.castShadow = true;
+            pointLight.shadowMapWidth = 4096;
+            pointLight.shadowMapHeight = 4096;
+            scene.add(pointLight);
+        }
+
+        function getInitializedScene() {
+            const scene = new THREE.Scene();
+
+            const light = new THREE.DirectionalLight(0xffffff);
+            light.position.set(100, 100, 100);
+            const light3 = new THREE.AmbientLight(0xFFFFFF, 0.5);
+            const pointLight = new THREE.PointLight(0xffffff, 1, 1000);
+            pointLight.position.set(40, 50, 30);
+            pointLight.castShadow = true;
+            pointLight.shadowMapWidth = 4096;
+            pointLight.shadowMapHeight = 4096;
+
+            scene.add(pointLight);
+            scene.add(light);
+            scene.add(light3);
+
+            return scene;
+        }
+
+        function getInitializedCamera() {
+            const camera = new THREE.PerspectiveCamera(75, 800 / 600, 0.1, 1000);
+            camera.position.set(18, 24, 30);
+            camera.lookAt(0, 0, 0);
+            return camera;
+        }
+
+        function main() {
+
+            const userInput = getUserInput();
+            const wrap = generateObject(userInput);
+
+            const scene = getInitializedScene();
+            const camera = getInitializedCamera();
+            showSliderValue();
+
+            const graphicsElement = document.getElementById('graphics');
+            graphicsElement.appendChild(renderer.domElement);
+
+            console.log(getUserInput());
+
+            scene.add(wrap);
+
+            function animate() {
+                renderer.render(scene, camera);
+                animeID = requestAnimationFrame(animate);
+                if (document.getElementById('AutoRotation').checked) {
+                    wrap.rotation.y += 0.01;
+                } else {
+                    wrap.rotation.y = document.getElementById('Rotation').value / 100;
+                }
+            }
+            animate();
+        }
+        main();
+
+    </script>
+</body>
+
+</html>
